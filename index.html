@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Recall">
+<meta name="theme-color" content="#EDF0F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12161D" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Recall</title>
+<style>
+:root{
+  --bg:#EDF0F4; --surface:#FFFFFF; --surface2:#F4F6F9; --ink:#1B2433; --muted:#667085; --line:#DCE1E8;
+  --accent:#2E6FD8; --accent-ink:#FFFFFF; --new:#2E6FD8; --learn:#C8423A; --due:#23874F;
+  --again:#C8423A; --hard:#5F6B7A; --good:#23874F; --easy:#2E6FD8;
+  --card:#FFFFFF; --rule:rgba(46,111,216,.10); --margin:#E39C97; --susp:#FFF6D6;
+  --shadow:0 1px 2px rgba(20,30,50,.06),0 10px 28px rgba(20,30,50,.08);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#12161D; --surface:#1B212B; --surface2:#222A36; --ink:#E6EAF0; --muted:#8F99AA; --line:#2C3441;
+    --accent:#6EA0F0; --accent-ink:#0E1420; --new:#6EA0F0; --learn:#F07C72; --due:#5CC48A;
+    --again:#F07C72; --hard:#A3ADBB; --good:#5CC48A; --easy:#6EA0F0;
+    --card:#1E2530; --rule:rgba(110,160,240,.07); --margin:#7A3A3E; --susp:#3A3420;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.3); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12161D; --surface:#1B212B; --surface2:#222A36; --ink:#E6EAF0; --muted:#8F99AA; --line:#2C3441;
+  --accent:#6EA0F0; --accent-ink:#0E1420; --new:#6EA0F0; --learn:#F07C72; --due:#5CC48A;
+  --again:#F07C72; --hard:#A3ADBB; --good:#5CC48A; --easy:#6EA0F0;
+  --card:#1E2530; --rule:rgba(110,160,240,.07); --margin:#7A3A3E; --susp:#3A3420;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.3); color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;overscroll-behavior:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#app{height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+#view{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:24px}
+#tabs{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;font-size:11px;color:var(--muted)}
+#tabs button[aria-current="page"]{color:var(--accent)}
+#tabs svg{width:24px;height:24px}
+body.studying #tabs{display:none}
+body.studying #view{padding-bottom:0}
+svg.i{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:10px 12px;min-height:52px;position:sticky;top:0;background:var(--bg);z-index:5}
+.bar h1{margin:0;font-size:17px;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+.bar .l{justify-self:start}.bar .r{justify-self:end;display:flex;gap:4px}
+.link{color:var(--accent);padding:6px 4px;font-size:16px}
+.iconbtn{width:38px;height:38px;display:grid;place-items:center;border-radius:10px;color:var(--accent)}
+.iconbtn svg{width:22px;height:22px}
+.big-title{font-size:32px;font-weight:700;letter-spacing:-.02em;margin:4px 16px 12px}
+
+.wrap{max-width:680px;margin:0 auto}
+.group{background:var(--surface);border-radius:14px;margin:0 12px 16px;overflow:hidden}
+.group-h{font-size:13px;color:var(--muted);margin:18px 28px 6px}
+.group-f{font-size:13px;color:var(--muted);margin:-10px 28px 16px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;min-height:48px;border-top:1px solid var(--line);width:100%;text-align:left}
+.row:first-child{border-top:0}
+.row .sub{color:var(--muted);font-size:14px}
+.row.danger{color:var(--again)}
+.row input[type=number]{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:96px;text-align:right}
+.row select{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:auto;max-width:170px}
+.row input[type=text]{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:140px;text-align:right}
+.chev{color:var(--muted)}
+
+/* Deck list */
+.deck-head,.deck-row{display:grid;grid-template-columns:1fr 38px 38px 38px 34px;align-items:center;column-gap:4px}
+.deck-head{font-size:12px;color:var(--muted);padding:0 16px 6px 28px}
+.deck-head span{text-align:center}
+.deck-row{border-top:1px solid var(--line);min-height:52px;padding-right:4px}
+.deck-row:first-child{border-top:0}
+.deck-name{display:flex;align-items:center;gap:4px;text-align:left;padding:12px 0 12px 8px;min-width:0}
+.deck-name .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.twisty{width:20px;flex:none;color:var(--muted);font-size:12px;display:inline-grid;place-items:center;height:24px}
+.twisty.open{transform:rotate(90deg)}
+.cnt{text-align:center;font-variant-numeric:tabular-nums;font-weight:600;font-size:15px}
+.cnt.zero{color:var(--line);font-weight:400}
+.cnt.n{color:var(--new)}.cnt.l{color:var(--learn)}.cnt.r{color:var(--due)}
+.more{color:var(--muted);height:40px;font-size:20px;letter-spacing:1px}
+.btn-row{display:flex;gap:10px;margin:0 12px 16px}
+.btn{flex:1;padding:12px 14px;border-radius:12px;background:var(--surface);font-weight:600;color:var(--accent);text-align:center}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--again)}
+.btn:disabled{opacity:.4}
+.hint{margin:0 12px 16px;padding:12px 14px;border-radius:12px;background:var(--surface);font-size:14px;color:var(--muted);display:flex;gap:10px;align-items:flex-start}
+.hint b{color:var(--ink)}
+.hint .x{margin-left:auto;color:var(--muted);font-size:18px;line-height:1}
+.empty{text-align:center;color:var(--muted);padding:40px 24px}
+.empty h2{color:var(--ink);font-size:20px;margin:0 0 6px}
+
+/* Deck overview */
+.overview{padding:8px 16px 0;text-align:center}
+.overview .path{color:var(--muted);font-size:14px}
+.overview h2{font-size:28px;margin:2px 0 18px;letter-spacing:-.01em}
+.ov-counts{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border-radius:14px;margin:0 0 16px;overflow:hidden}
+.ov-counts div{padding:16px 6px}
+.ov-counts div+div{border-left:1px solid var(--line)}
+.ov-counts b{display:block;font-size:30px;font-variant-numeric:tabular-nums;line-height:1.1}
+.ov-counts span{font-size:13px;color:var(--muted)}
+.study-btn{display:block;width:100%;padding:16px;border-radius:14px;background:var(--accent);color:var(--accent-ink);font-size:18px;font-weight:700;margin-bottom:16px}
+.done-note{background:var(--surface);border-radius:14px;padding:18px;margin-bottom:16px;color:var(--muted)}
+.done-note b{display:block;color:var(--ink);font-size:17px;margin-bottom:4px}
+
+/* Study */
+.study{display:flex;flex-direction:column;height:100%}
+.study .bar{background:var(--bg)}
+.counts{font-variant-numeric:tabular-nums;font-weight:600;font-size:16px;display:flex;gap:6px;justify-content:center}
+.counts span{padding-bottom:1px;border-bottom:2px solid transparent}
+.counts .n{color:var(--new)}.counts .l{color:var(--learn)}.counts .r{color:var(--due)}
+.counts .cur{border-bottom-color:currentColor}
+.counts .plus{color:var(--muted);font-weight:400}
+.stage{flex:1;overflow-y:auto;padding:4px 12px 16px}
+.index-card{position:relative;background:var(--card);border-radius:6px;box-shadow:var(--shadow);min-height:100%;padding:44px 20px 32px;
+  background-image:linear-gradient(var(--margin),var(--margin)),repeating-linear-gradient(to bottom,transparent 0,transparent 32px,var(--rule) 32px,var(--rule) 33px);
+  background-size:100% 2px,100% 100%;background-position:0 30px,0 44px;background-repeat:no-repeat,repeat-y;max-width:680px;margin:0 auto}
+.qa{font-family:var(--serif);font-size:23px;line-height:33px;text-align:center;overflow-wrap:anywhere}
+.qa img{max-width:100%;height:auto;border-radius:4px;vertical-align:middle}
+.qa hr#answer{border:0;border-top:1.5px dashed var(--line);margin:22px 0}
+.qa .cloze{color:var(--accent);font-weight:700}
+.qa .extra{margin-top:18px;font-size:18px;line-height:28px;color:var(--muted)}
+.qa ul,.qa ol{text-align:left;display:inline-block}
+.typein{display:block;width:100%;max-width:420px;margin:18px auto 0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);font:18px var(--sans);text-align:center}
+.typecmp{font:17px/1.5 var(--sans);margin:18px auto 0;max-width:420px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.typecmp div{padding:8px 12px}
+.typecmp .ok{background:color-mix(in srgb,var(--good) 18%,transparent)}
+.typecmp .bad{background:color-mix(in srgb,var(--again) 16%,transparent);text-decoration:line-through}
+.answer-bar{background:var(--surface);border-top:1px solid var(--line);padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px))}
+.show-btn{display:block;width:100%;max-width:680px;margin:0 auto;padding:15px;border-radius:12px;background:var(--surface2);font-weight:700;font-size:17px}
+.ease{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:680px;margin:0 auto}
+.ease button{display:flex;flex-direction:column;align-items:center;padding:9px 2px 11px;border-radius:12px;background:var(--surface2);font-weight:700;font-size:16px}
+.ease small{font-size:12px;font-weight:500;color:var(--muted);min-height:16px}
+.ease .e1{color:var(--again)}.ease .e2{color:var(--hard)}.ease .e3{color:var(--good)}.ease .e4{color:var(--easy)}
+.congrats{text-align:center;padding:60px 28px;color:var(--muted)}
+.congrats h2{color:var(--ink);font-size:24px;margin:0 0 8px}
+
+/* Editor */
+.form{padding:0 12px}
+.form label.lbl{display:block;font-size:13px;color:var(--muted);margin:14px 4px 6px}
+.sel{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);-webkit-appearance:none;appearance:none}
+.field-edit{min-height:74px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font:18px/1.45 var(--serif);outline:none;overflow-wrap:anywhere}
+.field-edit:focus{border-color:var(--accent)}
+.field-edit img{max-width:100%;height:auto}
+.field-edit:empty::before{content:attr(data-ph);color:var(--muted)}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 0;position:sticky;top:52px;z-index:4;background:var(--bg);padding:6px 0}
+.toolbar button{min-width:40px;height:36px;padding:0 10px;border-radius:9px;background:var(--surface);border:1px solid var(--line);font-weight:600}
+.text-in{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+.help{font-size:13px;color:var(--muted);margin:6px 4px 0}
+
+/* Browse */
+.search{display:flex;gap:8px;padding:0 12px 10px;position:sticky;top:52px;background:var(--bg);z-index:4}
+.search input{flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);-webkit-appearance:none}
+.chips{display:flex;gap:6px;padding:0 12px 10px;overflow-x:auto}
+.chips button{flex:none;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:14px}
+.chips button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.result-n{font-size:13px;color:var(--muted);margin:0 16px 6px}
+.brow{display:block;width:100%;text-align:left;padding:11px 16px;border-top:1px solid var(--line)}
+.brow:first-child{border-top:0}
+.brow.susp{background:var(--susp)}
+.bq{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.bmeta{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted)}
+.bmeta span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preview{background:var(--card);border-radius:10px;padding:16px;margin:0 0 12px;border:1px solid var(--line)}
+.preview .qa{font-size:19px;line-height:28px}
+.info{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px;margin:0 0 14px}
+.info dt{color:var(--muted)}.info dd{margin:0;text-align:right}
+
+/* Stats */
+.stat-card{background:var(--surface);border-radius:14px;margin:0 12px 14px;padding:14px 16px}
+.stat-card h3{margin:0 0 10px;font-size:16px}
+.stat-big{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stat-big b{display:block;font-size:24px;font-variant-numeric:tabular-nums}
+.stat-big span{font-size:12px;color:var(--muted)}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-size:9px;font-family:var(--sans)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.stack{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--surface2)}
+
+/* Sheets */
+.sheet-wrap{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet-back{position:absolute;inset:0;background:rgba(0,0,0,.35);opacity:0;transition:opacity .18s}
+.sheet{position:relative;width:100%;max-width:560px;max-height:88%;overflow-y:auto;background:var(--bg);border-radius:16px 16px 0 0;padding:16px 14px calc(14px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+.sheet-wrap.in .sheet{transform:none}.sheet-wrap.in .sheet-back{opacity:1}
+.sheet-wrap.out .sheet{transform:translateY(100%)}.sheet-wrap.out .sheet-back{opacity:0}
+.sheet-title{font-weight:600;text-align:center;margin:0 0 12px;font-size:16px}
+.sheet-msg{text-align:center;color:var(--muted);font-size:14px;margin:-4px 8px 14px}
+.action-list{background:var(--surface);border-radius:14px;overflow:hidden;margin-bottom:10px}
+.action{display:block;width:100%;padding:15px;text-align:center;border-top:1px solid var(--line);color:var(--accent);font-size:17px}
+.action:first-child{border-top:0}
+.action.danger{color:var(--again)}
+.action.cancel{background:var(--surface);border-radius:14px;font-weight:600;border:0}
+.field-input{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);margin-bottom:12px;font-size:17px}
+.row-btns{display:flex;gap:10px}
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:60;max-width:86vw;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <main id="view"></main>
+  <nav id="tabs" aria-label="Main">
+    <button data-tab="decks"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="8" width="14" height="12" rx="2"/><path d="M7 5h11a2 2 0 0 1 2 2v9"/></svg>Decks</button>
+    <button data-tab="add"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add</button>
+    <button data-tab="browse"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>Browse</button>
+    <button data-tab="stats"><svg class="i" viewBox="0 0 24 24"><path d="M5 20v-8M12 20V5M19 20v-12"/></svg>Stats</button>
+  </nav>
+</div>
+<div id="sheet-root"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="filepick" hidden>
+
+<script>
+'use strict';
+/* ================= Utilities ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const view = $('#view');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+const clone = o => JSON.parse(JSON.stringify(o));
+const DAY = 86400000;
+const tpl = document.createElement('template');
+function strip(html){ tpl.innerHTML = String(html ?? '').replace(/<br\s*\/?>/gi, ' ').replace(/<\/(div|p|li)>/gi, ' '); return tpl.content.textContent.replace(/\s+/g, ' ').trim(); }
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1900); }
+const ICON = {
+  gear: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  plus: '<svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  dots: '<svg class="i" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>',
+  close: '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  undo: '<svg class="i" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>',
+};
+
+/* ================= Storage (IndexedDB, falls back to localStorage) ================= */
+const Store = {
+  db: null,
+  open(){ return new Promise(res => {
+    try {
+      const r = indexedDB.open('recall', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => { this.db = r.result; res(); };
+      r.onerror = () => res();
+    } catch (e) { res(); }
+  }); },
+  get(k){ return new Promise(res => {
+    if (!this.db) { try { const v = localStorage.getItem('recall:' + k); res(v ? JSON.parse(v) : undefined); } catch (e) { res(undefined); } return; }
+    const q = this.db.transaction('kv').objectStore('kv').get(k);
+    q.onsuccess = () => res(q.result); q.onerror = () => res(undefined);
+  }); },
+  set(k, v){ return new Promise(res => {
+    if (!this.db) { try { localStorage.setItem('recall:' + k, JSON.stringify(v)); } catch (e) { toast('Could not save: storage is full'); } res(); return; }
+    const tx = this.db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k);
+    tx.oncomplete = () => res(); tx.onerror = () => { toast('Could not save changes'); res(); };
+  }); },
+};
+let col = null, saveTimer = null;
+function save(){ clearTimeout(saveTimer); saveTimer = setTimeout(flush, 250); }
+function flush(){ clearTimeout(saveTimer); saveTimer = null; if (col) return Store.set('collection', col); }
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flush();
+  else if (['decks','deck','stats'].includes(route.name)) render();
+});
+window.addEventListener('pagehide', flush);
+
+/* ================= Collection model ================= */
+const DEFAULT_CONF = { newPerDay:20, revPerDay:200, learnSteps:[1,10], graduatingIvl:1, easyIvl:4, relearnSteps:[10],
+  startEase:2.5, easyBonus:1.3, hardIvl:1.2, ivlMod:1, lapseMult:0, minIvl:1, maxIvl:36500, leechThreshold:8, leechAction:'tag', buryNew:true, buryRev:true };
+const NOTE_TYPES = {
+  basic:   { name:'Basic', fields:['Front','Back'] },
+  reverse: { name:'Basic (and reversed card)', fields:['Front','Back'] },
+  type:    { name:'Basic (type in the answer)', fields:['Front','Back'] },
+  cloze:   { name:'Cloze', fields:['Text','Back Extra'] },
+};
+const CLOZE_RE = /\{\{c(\d+)::([\s\S]*?)(?:::([\s\S]*?))?\}\}/g;
+
+function newCollection(){
+  return { ver:1, decks:{}, notes:{}, cards:{}, revlog:[], nextPos:1, collapsed:{},
+    prefs:{ theme:'system', dayStartHour:4, showIntervals:true, showCounts:true, lastDeck:null, lastType:'basic', hideInstall:false },
+    daily:{ day:-1, newDone:{}, revDone:{}, extraNew:{} }, created:Date.now() };
+}
+function dayNum(t = Date.now()){ const d = new Date(t - col.prefs.dayStartHour * 3600000); return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY); }
+function dayStartMs(day){ const d = new Date(day * DAY); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), col.prefs.dayStartHour).getTime(); }
+function rollDay(){ const t = dayNum(); if (col.daily.day !== t) col.daily = { day:t, newDone:{}, revDone:{}, extraNew:{} }; return t; }
+
+function decksSorted(){ return Object.values(col.decks).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity:'base', numeric:true })); }
+function deckByName(name){ const n = name.toLowerCase(); return Object.values(col.decks).find(d => d.name.toLowerCase() === n); }
+function ensureDeck(name){
+  name = name.split('::').map(s => s.trim()).filter(Boolean).join('::');
+  if (!name) return null;
+  const parts = name.split('::'); let deck = null;
+  for (let i = 1; i <= parts.length; i++) {
+    const nm = parts.slice(0, i).join('::');
+    deck = deckByName(nm);
+    if (!deck) { const id = uid(); deck = col.decks[id] = { id, name:nm, conf:clone(DEFAULT_CONF), created:Date.now() }; }
+  }
+  return deck;
+}
+function subtreeIds(deckId){ const nm = col.decks[deckId].name.toLowerCase(); return Object.values(col.decks).filter(d => d.id === deckId || d.name.toLowerCase().startsWith(nm + '::')).map(d => d.id); }
+function leaf(name){ const p = name.split('::'); return p[p.length - 1]; }
+function firstDeckId(){ const d = decksSorted()[0] || ensureDeck('Default'); return d.id; }
+function confFor(card){ return (col.decks[card.deckId] || {}).conf || DEFAULT_CONF; }
+function cardsOfNote(noteId){ return Object.values(col.cards).filter(c => c.noteId === noteId); }
+
+function cardOrds(note){
+  if (note.type === 'reverse') return strip(note.fields[1]) || /<img/i.test(note.fields[1]) ? [0, 1] : [0];
+  if (note.type === 'cloze') { const s = new Set(); for (const m of note.fields[0].matchAll(CLOZE_RE)) s.add(+m[1] - 1); return [...s].sort((a, b) => a - b); }
+  return [0];
+}
+function syncCards(note){
+  const want = new Set(cardOrds(note));
+  for (const c of cardsOfNote(note.id)) { if (!want.has(c.ord)) delete col.cards[c.id]; else want.delete(c.ord); }
+  for (const ord of want) {
+    const id = uid();
+    col.cards[id] = { id, noteId:note.id, deckId:note.deckId, ord, type:'new', due:col.nextPos++, ivl:0, ease:0, reps:0, lapses:0, step:0, suspended:false, buried:null, created:Date.now() };
+  }
+}
+function addNote(type, fields, tags, deckId){
+  const id = uid();
+  const note = col.notes[id] = { id, type, fields, tags, deckId, created:Date.now(), mod:Date.now() };
+  syncCards(note); return note;
+}
+function deleteNote(noteId){ for (const c of cardsOfNote(noteId)) delete col.cards[c.id]; delete col.notes[noteId]; }
+
+/* ================= Scheduler (Anki SM-2 style) ================= */
+function clampIvl(i, conf){ return Math.max(1, Math.min(conf.maxIvl, Math.round(i))); }
+function fuzzIvl(i){ if (i < 3) return i; const f = Math.max(1, Math.round(i * 0.05)); return i + Math.floor(Math.random() * (2 * f + 1)) - f; }
+function hardDelay(steps, step){ if (step === 0) return steps.length > 1 ? (steps[0] + steps[1]) / 2 : Math.min(steps[0] * 1.5, steps[0] + 1440); return steps[step]; }
+
+function schedule(c, ease, conf, now, today, fuzz){
+  const s = { ...c, reps:c.reps + 1 };
+  const inMin = m => now + Math.round(m * 60000);
+  const toReview = ivl => { s.type = 'review'; s.step = 0; s.ivl = clampIvl(fuzz ? fuzzIvl(Math.round(ivl)) : ivl, conf); s.due = today + s.ivl; };
+  if (c.type === 'new' || c.type === 'learn') {
+    const steps = conf.learnSteps.length ? conf.learnSteps : [1];
+    const step = c.type === 'new' ? 0 : Math.min(c.step, steps.length - 1);
+    if (c.type === 'new') s.ease = conf.startEase;
+    if (ease === 1) { s.type = 'learn'; s.step = 0; s.due = inMin(steps[0]); }
+    else if (ease === 2) { s.type = 'learn'; s.step = step; s.due = inMin(hardDelay(steps, step)); }
+    else if (ease === 3) { if (step + 1 < steps.length) { s.type = 'learn'; s.step = step + 1; s.due = inMin(steps[step + 1]); } else toReview(conf.graduatingIvl); }
+    else toReview(conf.easyIvl);
+  } else if (c.type === 'review') {
+    if (ease === 1) {
+      s.lapses = c.lapses + 1; s.ease = Math.max(1.3, c.ease - 0.2);
+      s.ivl = clampIvl(Math.max(conf.minIvl, c.ivl * conf.lapseMult), conf);
+      if (conf.relearnSteps.length) { s.type = 'relearn'; s.step = 0; s.due = inMin(conf.relearnSteps[0]); }
+      else s.due = today + s.ivl;
+    } else {
+      const delay = Math.max(0, today - c.due);
+      const hard = Math.max(c.ivl + 1, Math.round(c.ivl * conf.hardIvl * conf.ivlMod));
+      const good = Math.max(hard + 1, Math.round((c.ivl + delay / 2) * c.ease * conf.ivlMod));
+      const easy = Math.max(good + 1, Math.round((c.ivl + delay) * c.ease * conf.easyBonus * conf.ivlMod));
+      if (ease === 2) s.ease = Math.max(1.3, c.ease - 0.15);
+      if (ease === 4) s.ease = c.ease + 0.15;
+      toReview(ease === 2 ? hard : ease === 3 ? good : easy);
+    }
+  } else { // relearn
+    const steps = conf.relearnSteps.length ? conf.relearnSteps : [10];
+    const step = Math.min(c.step, steps.length - 1);
+    if (ease === 1) { s.step = 0; s.due = inMin(steps[0]); }
+    else if (ease === 2) { s.due = inMin(hardDelay(steps, step)); }
+    else if (ease === 3) { if (step + 1 < steps.length) { s.step = step + 1; s.due = inMin(steps[step + 1]); } else { s.type = 'review'; s.step = 0; s.due = today + c.ivl; } }
+    else { s.type = 'review'; s.step = 0; s.ivl = clampIvl(c.ivl + 1, conf); s.due = today + s.ivl; }
+  }
+  return s;
+}
+function fmtIvl(ms){
+  const m = ms / 60000; if (m < 1) return '<1m'; if (m < 59.5) return Math.round(m) + 'm';
+  const h = m / 60; if (h < 23.5) return (h < 10 ? +h.toFixed(1) : Math.round(h)) + 'h';
+  const d = h / 24; if (d < 30) return Math.round(d) + 'd';
+  const mo = d / 30.44; if (mo < 11.95) return +mo.toFixed(1) + 'mo';
+  return +(d / 365.25).toFixed(1) + 'y';
+}
+function ivlLabel(card, ease){
+  const now = Date.now(), today = dayNum(now);
+  const s = schedule(card, ease, confFor(card), now, today, false);
+  return s.type === 'review' ? fmtIvl((s.due - today) * DAY) : fmtIvl(s.due - now);
+}
+
+/* Build the queue for a deck (including its subdecks), respecting daily limits */
+function studyPool(deckId, now = Date.now()){
+  const today = rollDay(), endOfDay = dayStartMs(today + 1);
+  const ids = subtreeIds(deckId), idSet = new Set(ids);
+  const byDeckNew = {}, byDeckRev = {}, learn = [];
+  for (const c of Object.values(col.cards)) {
+    if (!idSet.has(c.deckId) || c.suspended || c.buried === today) continue;
+    if (c.type === 'new') (byDeckNew[c.deckId] ||= []).push(c);
+    else if (c.type === 'review') { if (c.due <= today) (byDeckRev[c.deckId] ||= []).push(c); }
+    else if (c.due < endOfDay) learn.push(c);
+  }
+  const done = key => ids.reduce((a, id) => a + (col.daily[key][id] || 0), 0);
+  const extra = col.daily.extraNew[deckId] || 0;
+  const newCap = Math.max(0, col.decks[deckId].conf.newPerDay + extra - done('newDone'));
+  const revCap = Math.max(0, col.decks[deckId].conf.revPerDay - done('revDone'));
+  const gather = (by, key, limKey, sortFn) => {
+    let out = [];
+    for (const [d, arr] of Object.entries(by)) {
+      const rem = d === deckId ? Infinity : Math.max(0, col.decks[d].conf[limKey] + (col.daily.extraNew[d] || 0) * (key === 'newDone') - (col.daily[key][d] || 0));
+      arr.sort(sortFn); out.push(...arr.slice(0, rem));
+    }
+    return out.sort(sortFn);
+  };
+  const news = gather(byDeckNew, 'newDone', 'newPerDay', (a, b) => a.due - b.due).slice(0, newCap);
+  const revs = gather(byDeckRev, 'revDone', 'revPerDay', (a, b) => a.due - b.due || a.ivl - b.ivl).slice(0, revCap);
+  learn.sort((a, b) => a.due - b.due);
+  return { new:news, review:revs, learn };
+}
+function deckCounts(deckId){ const p = studyPool(deckId); return { n:p.new.length, l:p.learn.length, r:p.review.length }; }
+
+/* ================= Card rendering ================= */
+const ALLOWED = new Set(['B','I','U','EM','STRONG','BR','DIV','P','SPAN','SUB','SUP','UL','OL','LI','IMG','HR','FONT','S','STRIKE','CODE','PRE','TABLE','TBODY','THEAD','TR','TD','TH']);
+function cleanNode(node){
+  for (const ch of [...node.childNodes]) {
+    if (ch.nodeType === 1) {
+      const tag = ch.tagName;
+      if (['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','LINK','META'].includes(tag)) { ch.remove(); continue; }
+      cleanNode(ch);
+      if (!ALLOWED.has(tag)) { ch.replaceWith(...ch.childNodes); continue; }
+      for (const a of [...ch.attributes]) if (!(tag === 'IMG' && a.name === 'src' && /^data:image\//i.test(a.value))) ch.removeAttribute(a.name);
+      if (tag === 'IMG' && !ch.getAttribute('src')) ch.remove();
+    } else if (ch.nodeType !== 3) ch.remove();
+  }
+}
+function sanitize(html){
+  const doc = new DOMParser().parseFromString('<body>' + String(html ?? ''), 'text/html');
+  cleanNode(doc.body);
+  return doc.body.innerHTML.replace(/(<br>|\s|&nbsp;)+$/i, '').replace(/^(<br>|\s|&nbsp;)+/i, '');
+}
+function clozeText(text, n, back){
+  return text.replace(CLOZE_RE, (m, num, content, hint) => {
+    if (+num !== n) return content;
+    return back ? `<span class="cloze">${content}</span>` : `<span class="cloze">[${hint ? esc(strip(hint)) : '…'}]</span>`;
+  });
+}
+function renderQA(card){
+  const note = col.notes[card.noteId]; const f = note.fields.map(sanitize);
+  let q, a;
+  switch (note.type) {
+    case 'reverse': q = card.ord ? f[1] : f[0]; a = q + '<hr id="answer">' + (card.ord ? f[0] : f[1]); break;
+    case 'type': q = f[0]; a = f[0] + '<hr id="answer">' + f[1]; break;
+    case 'cloze': q = clozeText(f[0], card.ord + 1, false); a = clozeText(f[0], card.ord + 1, true) + (strip(f[1]) || /<img/i.test(f[1]) ? `<hr id="answer"><div class="extra">${f[1]}</div>` : ''); break;
+    default: q = f[0]; a = f[0] + '<hr id="answer">' + f[1];
+  }
+  return { q, a, type: note.type, answerText: note.type === 'type' ? strip(f[1]) : '' };
+}
+function sortText(card){
+  const note = col.notes[card.noteId];
+  if (note.type === 'cloze') return strip(clozeText(note.fields[0], card.ord + 1, false));
+  return strip(note.type === 'reverse' && card.ord ? note.fields[1] : note.fields[0]);
+}
+
+/* ================= Sheets & dialogs ================= */
+function openSheet(html, handlers = {}, opts = {}){
+  const wrap = document.createElement('div'); wrap.className = 'sheet-wrap';
+  wrap.innerHTML = `<div class="sheet-back" data-act="__close"></div><div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+  $('#sheet-root').appendChild(wrap);
+  let closed = false;
+  const close = () => { if (closed) return; closed = true; wrap.classList.remove('in'); wrap.classList.add('out'); setTimeout(() => wrap.remove(), 220); opts.onClose && opts.onClose(); };
+  wrap.addEventListener('click', e => {
+    const el = e.target.closest('[data-act]'); if (!el || !wrap.contains(el)) return;
+    if (el.dataset.act === '__close') { close(); return; }
+    const h = handlers[el.dataset.act]; if (h) h(el, e, close);
+  });
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('in')));
+  return { el:wrap, close };
+}
+function actionSheet(title, actions, msg){
+  openSheet(`${title ? `<div class="sheet-title">${esc(title)}</div>` : ''}${msg ? `<div class="sheet-msg">${esc(msg)}</div>` : ''}
+    <div class="action-list">${actions.map((a, i) => `<button class="action ${a.danger ? 'danger' : ''}" data-act="a" data-i="${i}">${esc(a.label)}</button>`).join('')}</div>
+    <button class="action cancel" data-act="__close">Cancel</button>`,
+    { a:(el, e, close) => { close(); actions[+el.dataset.i].run(); } });
+}
+function confirmSheet(title, msg, okLabel, danger = true){
+  return new Promise(res => {
+    openSheet(`<div class="sheet-title">${esc(title)}</div>${msg ? `<div class="sheet-msg">${esc(msg)}</div>` : ''}
+      <div class="action-list"><button class="action ${danger ? 'danger' : ''}" data-act="ok">${esc(okLabel)}</button></div>
+      <button class="action cancel" data-act="__close">Cancel</button>`,
+      { ok:(el, e, close) => { res(true); close(); } }, { onClose:() => res(false) });
+  });
+}
+function askText(title, value = '', { placeholder = '', ok = 'Save', help = '', type = 'text' } = {}){
+  return new Promise(res => {
+    const s = openSheet(`<div class="sheet-title">${esc(title)}</div>
+      <input class="field-input" id="askin" type="${type}" value="${esc(value)}" placeholder="${esc(placeholder)}" autocomplete="off" autocapitalize="sentences">
+      ${help ? `<div class="sheet-msg" style="margin-top:-6px">${esc(help)}</div>` : ''}
+      <div class="row-btns"><button class="btn" data-act="__close">Cancel</button><button class="btn primary" data-act="ok">${esc(ok)}</button></div>`,
+      { ok:(el, e, close) => { const v = s.el.querySelector('#askin').value.trim(); res(v || null); close(); } }, { onClose:() => res(null) });
+    const inp = s.el.querySelector('#askin');
+    setTimeout(() => { inp.focus(); inp.select(); }, 60);
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); s.el.querySelector('[data-act=ok]').click(); } });
+  });
+}
+function pickFile(accept){
+  return new Promise(res => {
+    const inp = $('#filepick'); inp.value = ''; inp.accept = accept;
+    inp.onchange = () => res(inp.files[0] || null); inp.click();
+  });
+}
+async function shareFile(name, text, mime){
+  const blob = new Blob([text], { type:mime });
+  try {
+    const file = new File([blob], name, { type:mime });
+    if (navigator.canShare && navigator.canShare({ files:[file] })) { await navigator.share({ files:[file], title:name }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+
+/* ================= Router ================= */
+let route = { name:'decks' };
+let S = null; // study session
+function go(name, params = {}){ if (S && S.timer) clearTimeout(S.timer); route = { name, ...params }; render(); }
+function mount(html, handlers = {}){
+  view.innerHTML = html; view.scrollTop = 0;
+  view.onclick = e => { const el = e.target.closest('[data-act]'); if (!el || !view.contains(el)) return; const h = handlers[el.dataset.act]; if (h) h(el, e); };
+  view.onchange = e => { const h = handlers['change:' + (e.target.dataset.ch || e.target.id)]; if (h) h(e.target, e); };
+  view.oninput = e => { const h = handlers['input:' + (e.target.dataset.ch || e.target.id)]; if (h) h(e.target, e); };
+}
+const TAB_OF = { decks:'decks', deck:'decks', study:'decks', settings:'decks', options:'decks', add:'add', edit:'browse', browse:'browse', stats:'stats' };
+function render(){
+  document.body.classList.toggle('studying', route.name === 'study');
+  document.querySelectorAll('#tabs button').forEach(b => { if (TAB_OF[route.name] === b.dataset.tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  ({ decks:viewDecks, deck:viewDeck, study:viewStudy, add:viewEditor, edit:viewEditor, browse:viewBrowse, stats:viewStats, settings:viewSettings, options:viewOptions })[route.name]();
+}
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) go(b.dataset.tab); });
+
+function applyTheme(){ const t = col.prefs.theme; if (t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); }
+
+/* ================= Decks screen ================= */
+function hasKids(d){ const nm = d.name.toLowerCase() + '::'; return Object.values(col.decks).some(x => x.name.toLowerCase().startsWith(nm)); }
+function viewDecks(){
+  const decks = decksSorted();
+  const visible = decks.filter(d => { const p = d.name.split('::'); for (let i = 1; i < p.length; i++) { const anc = deckByName(p.slice(0, i).join('::')); if (anc && col.collapsed[anc.id]) return false; } return true; });
+  const cnt = (v, cls) => `<span class="cnt ${v ? cls : 'zero'}">${v}</span>`;
+  const rows = visible.map(d => {
+    const c = deckCounts(d.id), depth = d.name.split('::').length - 1, kids = hasKids(d);
+    return `<div class="deck-row">
+      <button class="deck-name" data-act="open" data-id="${d.id}" style="padding-left:${8 + depth * 18}px">
+        <span class="twisty ${kids && !col.collapsed[d.id] ? 'open' : ''}" ${kids ? 'data-act="toggle"' : ''} data-id="${d.id}">${kids ? '▶' : ''}</span>
+        <span class="nm">${esc(leaf(d.name))}</span></button>
+      ${cnt(c.n, 'n')}${cnt(c.l, 'l')}${cnt(c.r, 'r')}
+      <button class="more" data-act="menu" data-id="${d.id}" aria-label="Deck actions for ${esc(d.name)}">⋯</button></div>`;
+  }).join('');
+  const standalone = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  const installHint = !standalone && !col.prefs.hideInstall ? `<div class="hint"><div>To install, tap <b>Share</b> in Safari, then <b>Add to Home Screen</b>. It then works offline like a normal app.</div><button class="x" data-act="hideInstall" aria-label="Dismiss">×</button></div>` : '';
+  mount(`<div class="wrap">
+    <header class="bar"><span class="l"></span><h1></h1><span class="r"><button class="iconbtn" data-act="settings" aria-label="Settings">${ICON.gear}</button></span></header>
+    <div class="big-title">Decks</div>
+    ${installHint}
+    ${decks.length ? `<div class="deck-head"><span style="text-align:left"></span><span>New</span><span>Learn</span><span>Due</span><span></span></div>
+      <div class="group">${rows}</div>` : `<div class="empty"><h2>No decks yet</h2>Create a deck, then add cards to it.</div>`}
+    <div class="btn-row"><button class="btn" data-act="create">Create deck</button><button class="btn" data-act="import">Import file</button></div>
+  </div>`, {
+    open:(el, e) => { if (e.target.closest('.twisty[data-act=toggle]')) return; go('deck', { deckId:el.dataset.id }); },
+    toggle:(el, e) => { e.stopPropagation(); col.collapsed[el.dataset.id] = !col.collapsed[el.dataset.id]; save(); viewDecks(); },
+    menu:el => deckMenu(el.dataset.id),
+    settings:() => go('settings'),
+    create:createDeckFlow,
+    import:importTextFlow,
+    hideInstall:() => { col.prefs.hideInstall = true; save(); viewDecks(); },
+  });
+}
+async function createDeckFlow(){
+  const name = await askText('New deck', '', { placeholder:'Deck name', ok:'Create', help:'Use :: to make a subdeck, like Spanish::Verbs' });
+  if (!name) return null;
+  if (deckByName(name)) { toast('A deck with that name already exists'); return null; }
+  const d = ensureDeck(name); save(); render(); return d;
+}
+function deckMenu(id){
+  const d = col.decks[id];
+  actionSheet(d.name, [
+    { label:'Rename', run:async () => {
+      const nn = await askText('Rename deck', d.name, { ok:'Rename' }); if (!nn || nn === d.name) return;
+      const clean = nn.split('::').map(s => s.trim()).filter(Boolean).join('::');
+      if (deckByName(clean) && deckByName(clean).id !== id) { toast('A deck with that name already exists'); return; }
+      const old = d.name;
+      for (const x of Object.values(col.decks)) if (x.name.toLowerCase().startsWith(old.toLowerCase() + '::')) x.name = clean + x.name.slice(old.length);
+      d.name = clean; const parent = clean.split('::').slice(0, -1).join('::'); if (parent) ensureDeck(parent);
+      save(); render();
+    } },
+    { label:'Options', run:() => go('options', { deckId:id, back:route.name }) },
+    { label:'Export as text', run:() => exportDeckText(id) },
+    { label:'Delete', danger:true, run:async () => {
+      const ids = new Set(subtreeIds(id));
+      const cards = Object.values(col.cards).filter(c => ids.has(c.deckId));
+      if (!await confirmSheet(`Delete “${d.name}”?`, `This deletes ${ids.size > 1 ? 'the deck, its subdecks' : 'the deck'} and ${cards.length} card${cards.length === 1 ? '' : 's'}. This can't be undone.`, 'Delete deck')) return;
+      const notes = new Set(cards.map(c => c.noteId));
+      for (const c of cards) delete col.cards[c.id];
+      for (const n of notes) if (!cardsOfNote(n).length) delete col.notes[n];
+      for (const i of ids) delete col.decks[i];
+      save(); go('decks'); toast('Deck deleted');
+    } },
+  ]);
+}
+
+/* ================= Deck overview ================= */
+function viewDeck(){
+  const d = col.decks[route.deckId]; if (!d) return go('decks');
+  const c = deckCounts(d.id);
+  const total = c.n + c.l + c.r;
+  const parts = d.name.split('::');
+  const ids = new Set(subtreeIds(d.id));
+  const all = Object.values(col.cards).filter(x => ids.has(x.deckId));
+  const buried = all.filter(x => x.buried === dayNum()).length;
+  const unseen = all.filter(x => x.type === 'new' && !x.suspended).length;
+  const learnLater = studyPool(d.id).learn.length;
+  mount(`<div class="wrap">
+    <header class="bar"><button class="link l" data-act="back">‹ Decks</button><h1></h1><span class="r"><button class="iconbtn" data-act="menu" aria-label="Deck actions">${ICON.dots}</button></span></header>
+    <div class="overview">
+      ${parts.length > 1 ? `<div class="path">${esc(parts.slice(0, -1).join(' › '))}</div>` : ''}
+      <h2>${esc(leaf(d.name))}</h2>
+      <div class="ov-counts">
+        <div><b style="color:var(--new)">${c.n}</b><span>New</span></div>
+        <div><b style="color:var(--learn)">${c.l}</b><span>Learning</span></div>
+        <div><b style="color:var(--due)">${c.r}</b><span>To review</span></div>
+      </div>
+      ${total ? `<button class="study-btn" data-act="study">Study now</button>` :
+        all.length ? `<div class="done-note"><b>Congratulations! You have finished this deck for now.</b>${learnLater ? 'Some learning cards are due again later today.' : 'Come back tomorrow for more.'}</div>` :
+        `<div class="done-note"><b>This deck is empty</b>Add some cards to start studying.</div>`}
+    </div>
+    <div class="group-h">Deck</div>
+    <div class="group">
+      <button class="row" data-act="add"><span>Add cards</span><span class="chev">›</span></button>
+      <button class="row" data-act="browse"><span>Browse cards</span><span class="sub">${all.length}</span></button>
+      <button class="row" data-act="options"><span>Options</span><span class="chev">›</span></button>
+    </div>
+    <div class="group-h">Custom study</div>
+    <div class="group">
+      <button class="row" data-act="extra" ${unseen ? '' : 'disabled style="opacity:.45"'}><span>Study extra new cards today</span><span class="sub">${unseen} unseen</span></button>
+      <button class="row" data-act="unbury" ${buried ? '' : 'disabled style="opacity:.45"'}><span>Unbury cards</span><span class="sub">${buried}</span></button>
+    </div>
+  </div>`, {
+    back:() => go('decks'),
+    menu:() => deckMenu(d.id),
+    study:() => startStudy(d.id),
+    add:() => { col.prefs.lastDeck = d.id; if (editorDraft && !editorDraft.noteId) editorDraft.deckId = d.id; go('add'); },
+    browse:() => { browseQuery = `deck:"${d.name}"`; go('browse'); },
+    options:() => go('options', { deckId:d.id, back:'deck' }),
+    extra:async () => {
+      const v = await askText('Extra new cards today', '10', { type:'number', ok:'Add' }); const n = parseInt(v, 10);
+      if (!n || n < 1) return; col.daily.extraNew[d.id] = (col.daily.extraNew[d.id] || 0) + n; save(); viewDeck();
+    },
+    unbury:() => { const t = dayNum(); for (const x of all) if (x.buried === t) x.buried = null; save(); viewDeck(); toast('Cards unburied'); },
+  });
+}
+
+/* ================= Study ================= */
+function startStudy(deckId){ S = { deckId, card:null, answer:false, undo:[], shownAt:0, typed:'', timer:null }; pickNext(); go('study', { deckId }); }
+function pickNext(){
+  const now = Date.now(), p = studyPool(S.deckId, now);
+  const learnNow = p.learn.filter(c => c.due <= now);
+  let card = null;
+  if (learnNow.length) card = learnNow[0];
+  else if (p.review.length && p.new.length) card = Math.random() < p.new.length / (p.new.length + p.review.length) ? p.new[0] : p.review[0];
+  else card = p.review[0] || p.new[0] || null;
+  if (!card) { const ahead = p.learn.filter(c => c.due <= now + 20 * 60000); card = ahead[0] || null; }
+  if (card && S.card && card.id === S.card.id && !learnNow.includes(card)) { // avoid immediate repeat if something else waits
+    const alt = p.learn.find(c => c.id !== card.id && c.due <= now + 20 * 60000); if (alt) card = alt;
+  }
+  S.card = card; S.answer = false; S.typed = ''; S.shownAt = Date.now();
+}
+function viewStudy(){
+  if (!S || S.deckId !== route.deckId) { go('deck', { deckId:route.deckId }); return; }
+  if (S.timer) { clearTimeout(S.timer); S.timer = null; }
+  const now = Date.now(), p = studyPool(S.deckId, now);
+  const d = col.decks[S.deckId];
+  const header = body => `<div class="study">
+    <header class="bar"><button class="link l" data-act="quit">‹ ${esc(leaf(d.name))}</button>${body}<span class="r">
+      <button class="iconbtn" data-act="undo" aria-label="Undo" ${S.undo.length ? '' : 'disabled style="opacity:.35"'}>${ICON.undo}</button>
+      ${S.card ? `<button class="iconbtn" data-act="more" aria-label="Card actions">${ICON.dots}</button>` : ''}</span></header>`;
+  const handlers = {
+    quit:() => { S = null; go('deck', { deckId:d.id }); },
+    undo:undoAnswer,
+  };
+  if (!S.card) {
+    const next = p.learn[0];
+    let msg = 'Congratulations! You have finished this deck for now.';
+    let sub = 'Come back tomorrow for more reviews.';
+    if (next) {
+      sub = `More learning cards are due in ${fmtIvl(next.due - now)}.`;
+      S.timer = setTimeout(() => { if (route.name === 'study' && S && !S.card) { pickNext(); viewStudy(); } }, Math.min(Math.max(1000, next.due - now - 20 * 60000 + 500), 60000));
+    }
+    mount(header('<h1></h1>') + `<div class="congrats"><h2>${msg}</h2><p>${sub}</p><button class="btn primary" style="max-width:260px;margin:12px auto 0;display:block" data-act="quit">Back to deck</button></div></div>`, handlers);
+    return;
+  }
+  const c = S.card, qa = renderQA(c);
+  const cur = c.type === 'new' ? 'n' : c.type === 'review' ? 'r' : 'l';
+  const lCount = p.learn.filter(x => x.due <= now + 20 * 60000).length;
+  const counts = col.prefs.showCounts ? `<div class="counts" aria-label="Remaining cards">
+      <span class="n ${cur === 'n' ? 'cur' : ''}">${p.new.length}</span><span class="plus">+</span>
+      <span class="l ${cur === 'l' ? 'cur' : ''}">${lCount}</span><span class="plus">+</span>
+      <span class="r ${cur === 'r' ? 'cur' : ''}">${p.review.length}</span></div>` : '<h1></h1>';
+  let content;
+  if (!S.answer) {
+    content = qa.q + (qa.type === 'type' ? `<input class="typein" id="typein" placeholder="Type the answer" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="${esc(S.typed)}">` : '');
+  } else {
+    content = qa.a;
+    if (qa.type === 'type') {
+      const ok = S.typed.trim().toLowerCase() === qa.answerText.trim().toLowerCase();
+      content += `<div class="typecmp">${ok ? `<div class="ok">✓ ${esc(S.typed)}</div>` : `${S.typed ? `<div class="bad">${esc(S.typed)}</div>` : ''}<div class="ok">${esc(qa.answerText)}</div>`}</div>`;
+    }
+  }
+  const showIv = col.prefs.showIntervals;
+  const footer = !S.answer ? `<button class="show-btn" data-act="show">Show Answer</button>` :
+    `<div class="ease">${[['Again', 1], ['Hard', 2], ['Good', 3], ['Easy', 4]].map(([lbl, e]) =>
+      `<button class="e${e}" data-act="ans" data-e="${e}"><small>${showIv ? ivlLabel(c, e) : ''}</small>${lbl}</button>`).join('')}</div>`;
+  mount(header(counts) + `<section class="stage" id="stage"><article class="index-card" data-act="tapcard"><div class="qa">${content}</div></article></section>
+    <footer class="answer-bar">${footer}</footer></div>`, {
+    ...handlers,
+    show:showAnswer,
+    tapcard:(el, e) => { if (!S.answer && !(e && e.target && e.target.id === 'typein')) showAnswer(); },
+    ans:el => answerCard(+el.dataset.e),
+    more:cardMenu,
+  });
+  const inp = $('#typein');
+  if (inp) { inp.addEventListener('click', e => e.stopPropagation()); inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); showAnswer(); } }); }
+  if (S.answer) { const hr = $('#answer'); if (hr) { const st = $('#stage'); st.scrollTop = Math.max(0, hr.offsetTop - 80); } }
+}
+function showAnswer(){ const inp = $('#typein'); if (inp) S.typed = inp.value; S.answer = true; viewStudy(); }
+function answerCard(ease){
+  const c = S.card; if (!c) return;
+  const conf = confFor(c), now = Date.now(), today = dayNum(now);
+  const note = col.notes[c.noteId];
+  const sibs = cardsOfNote(c.noteId).filter(x => x.id !== c.id);
+  S.undo.push({ card:clone(c), tags:[...note.tags], sibs:sibs.map(clone), daily:clone(col.daily), revlogLen:col.revlog.length });
+  if (S.undo.length > 30) S.undo.shift();
+  const wasType = c.type, lastIvl = c.ivl;
+  const s = schedule(c, ease, conf, now, today, true);
+  if (wasType === 'review' && ease === 1) {
+    const th = conf.leechThreshold;
+    if (th > 0 && s.lapses >= th && (s.lapses - th) % Math.max(1, Math.floor(th / 2)) === 0) {
+      if (!note.tags.includes('leech')) note.tags.push('leech');
+      if (conf.leechAction === 'suspend') { s.suspended = true; toast('Leech: card suspended'); } else toast('This card is a leech');
+    }
+  }
+  Object.assign(c, s);
+  if (wasType === 'new') col.daily.newDone[c.deckId] = (col.daily.newDone[c.deckId] || 0) + 1;
+  else if (wasType === 'review') col.daily.revDone[c.deckId] = (col.daily.revDone[c.deckId] || 0) + 1;
+  for (const x of sibs) if ((x.type === 'new' && conf.buryNew) || (x.type === 'review' && x.due <= today && conf.buryRev)) x.buried = today;
+  col.revlog.push({ t:now, cid:c.id, did:c.deckId, ease, type:wasType, ivl:c.type === 'review' ? c.ivl : -Math.round((c.due - now) / 1000), lastIvl, time:Math.min(60000, now - S.shownAt) });
+  save(); pickNext(); viewStudy();
+}
+function undoAnswer(){
+  const u = S.undo.pop(); if (!u) return;
+  const c = col.cards[u.card.id];
+  if (c) Object.assign(c, u.card); else col.cards[u.card.id] = u.card;
+  const note = col.notes[u.card.noteId]; if (note) note.tags = u.tags;
+  for (const s of u.sibs) if (col.cards[s.id]) Object.assign(col.cards[s.id], s);
+  col.daily = u.daily; col.revlog.length = u.revlogLen;
+  S.card = col.cards[u.card.id]; S.answer = false; S.typed = ''; S.shownAt = Date.now();
+  save(); viewStudy(); toast('Answer undone');
+}
+function cardMenu(){
+  const c = S.card; const note = col.notes[c.noteId];
+  actionSheet(null, [
+    { label:'Edit note', run:() => go('edit', { noteId:c.noteId, back:() => { const cc = col.cards[c.id]; if (S) { S.card = cc && !cc.suspended ? cc : null; if (!S.card) pickNext(); } go('study', { deckId:S.deckId }); } }) },
+    { label:'Bury card', run:() => { c.buried = dayNum(); save(); pickNext(); viewStudy(); toast('Card buried until tomorrow'); } },
+    { label:'Bury note', run:() => { const t = dayNum(); for (const x of cardsOfNote(c.noteId)) x.buried = t; save(); pickNext(); viewStudy(); toast('Note buried until tomorrow'); } },
+    { label:'Suspend card', run:() => { c.suspended = true; save(); pickNext(); viewStudy(); toast('Card suspended'); } },
+    { label:'Deck options', run:() => go('options', { deckId:c.deckId, back:'study', studyDeck:S.deckId }) },
+    { label:'Delete note', danger:true, run:async () => {
+      if (!await confirmSheet('Delete this note?', `It has ${cardsOfNote(note.id).length} card(s). This can't be undone.`, 'Delete')) return;
+      deleteNote(note.id); S.undo = S.undo.filter(u => u.card.noteId !== note.id); save(); pickNext(); viewStudy(); toast('Note deleted');
+    } },
+  ]);
+}
+document.addEventListener('keydown', e => {
+  if (route.name !== 'study' || !S || !S.card || $('.sheet-wrap')) return;
+  if (e.target && e.target.id === 'typein') return;
+  if (!S.answer && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); showAnswer(); }
+  else if (S.answer && ['1','2','3','4'].includes(e.key)) answerCard(+e.key);
+  else if (S.answer && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); answerCard(3); }
+  else if (e.key === 'z' && (e.metaKey || e.ctrlKey)) undoAnswer();
+});
+
+/* ================= Add / Edit ================= */
+let editorDraft = null;
+function viewEditor(){
+  const editing = route.name === 'edit';
+  const note = editing ? col.notes[route.noteId] : null;
+  if (editing && !note) return go('browse');
+  if (!editorDraft || editorDraft.noteId !== (note ? note.id : null)) {
+    const deckId = editing ? note.deckId : (col.decks[col.prefs.lastDeck] ? col.prefs.lastDeck : firstDeckId());
+    editorDraft = { noteId:note ? note.id : null, type:editing ? note.type : (NOTE_TYPES[col.prefs.lastType] ? col.prefs.lastType : 'basic'),
+      deckId, fields:editing ? [...note.fields] : ['', ''], tags:editing ? note.tags.join(' ') : (col.prefs.lastTags || '') };
+  }
+  const D = editorDraft, nt = NOTE_TYPES[D.type];
+  const deckOpts = decksSorted().map(d => `<option value="${d.id}" ${d.id === D.deckId ? 'selected' : ''}>${esc(d.name.replace(/::/g, ' › '))}</option>`).join('');
+  mount(`<div class="wrap">
+    <header class="bar"><span class="l">${editing ? '<button class="link" data-act="cancel">Cancel</button>' : ''}</span><h1>${editing ? 'Edit note' : 'Add'}</h1>
+      <span class="r"><button class="link" data-act="save" style="font-weight:600">${editing ? 'Save' : 'Add'}</button></span></header>
+    <div class="form">
+      <label class="lbl" for="ntype">Type</label>
+      <select class="sel" id="ntype" ${editing ? 'disabled' : ''}>${Object.entries(NOTE_TYPES).map(([k, v]) => `<option value="${k}" ${k === D.type ? 'selected' : ''}>${v.name}</option>`).join('')}</select>
+      <label class="lbl" for="ndeck">Deck</label>
+      <select class="sel" id="ndeck">${deckOpts}<option value="__new">New deck…</option></select>
+      <div class="toolbar" id="tb">
+        <button data-cmd="bold" aria-label="Bold"><b>B</b></button><button data-cmd="italic" aria-label="Italic"><i>I</i></button><button data-cmd="underline" aria-label="Underline"><u>U</u></button>
+        <button data-cmd="image">Image</button>${D.type === 'cloze' ? '<button data-cmd="cloze">[…] Cloze</button>' : ''}
+      </div>
+      ${nt.fields.map((f, i) => `<label class="lbl" for="fld${i}">${f}</label><div class="field-edit" id="fld${i}" data-i="${i}" contenteditable="true" data-ph="${D.type === 'cloze' && i === 0 ? 'Select text and tap Cloze, or type {{c1::answer}}' : ''}">${sanitize(D.fields[i] || '')}</div>`).join('')}
+      <label class="lbl" for="ntags">Tags</label>
+      <input class="text-in" id="ntags" value="${esc(D.tags)}" placeholder="Separate tags with spaces" autocapitalize="off" autocorrect="off">
+      ${editing ? `<div class="help">${cardsOfNote(note.id).length} card(s) from this note.</div>
+        <div class="btn-row" style="margin:18px 0"><button class="btn danger" data-act="del">Delete note</button></div>` : ''}
+    </div></div>`, {
+    cancel:() => { editorDraft = null; route.back ? route.back() : go('browse'); },
+    save:saveEditor,
+    del:async () => {
+      if (!await confirmSheet('Delete this note?', "Its cards and their review history will be removed. This can't be undone.", 'Delete')) return;
+      deleteNote(note.id); save(); editorDraft = null; toast('Note deleted');
+      if (S) { S.undo = S.undo.filter(u => u.card.noteId !== note.id); S.card = null; pickNext(); }
+      route.back ? route.back() : go('browse');
+    },
+    'change:ntype':el => { collectFields(); D.type = el.value; if (!editing) col.prefs.lastType = el.value; viewEditor(); },
+    'change:ndeck':async el => {
+      if (el.value === '__new') { collectFields(); const d = await createDeckFlow(); if (d) D.deckId = d.id; if (route.name === 'add' || route.name === 'edit') viewEditor(); return; }
+      D.deckId = el.value;
+    },
+    'input:ntags':el => { D.tags = el.value; },
+  });
+  let lastField = $('#fld0');
+  view.querySelectorAll('.field-edit').forEach(f => {
+    f.addEventListener('focus', () => { lastField = f; });
+    f.addEventListener('input', () => { D.fields[+f.dataset.i] = f.innerHTML; });
+    f.addEventListener('paste', e => { e.preventDefault(); const t = (e.clipboardData || window.clipboardData).getData('text/plain'); document.execCommand('insertText', false, t); });
+  });
+  const tb = $('#tb');
+  tb.addEventListener('pointerdown', e => { if (e.target.closest('[data-cmd]')) e.preventDefault(); });
+  tb.addEventListener('mousedown', e => { if (e.target.closest('[data-cmd]')) e.preventDefault(); });
+  tb.addEventListener('click', async e => {
+    const b = e.target.closest('[data-cmd]'); if (!b) return;
+    const cmd = b.dataset.cmd;
+    if (cmd === 'image') {
+      const target = lastField; const file = await pickFile('image/*'); if (!file) return;
+      const url = await resizeImage(file); target.focus();
+      placeCaretEnd(target); document.execCommand('insertHTML', false, `<img src="${url}">`); D.fields[+target.dataset.i] = target.innerHTML; return;
+    }
+    if (cmd === 'cloze') {
+      const f0 = $('#fld0'); if (document.activeElement !== f0) { f0.focus(); placeCaretEnd(f0); }
+      const nums = [...f0.innerHTML.matchAll(CLOZE_RE)].map(m => +m[1]); const n = nums.length ? Math.max(...nums) + 1 : 1;
+      const sel = window.getSelection(); let inner = '';
+      if (sel.rangeCount && !sel.isCollapsed) { const div = document.createElement('div'); div.appendChild(sel.getRangeAt(0).cloneContents()); inner = div.innerHTML; }
+      document.execCommand('insertHTML', false, `{{c${n}::${inner}}}`); D.fields[0] = f0.innerHTML; return;
+    }
+    if (lastField) lastField.focus();
+    document.execCommand(cmd);
+  });
+}
+function placeCaretEnd(el){ const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+function collectFields(){ view.querySelectorAll('.field-edit').forEach(f => { editorDraft.fields[+f.dataset.i] = f.innerHTML; }); const t = $('#ntags'); if (t) editorDraft.tags = t.value; }
+function resizeImage(file){
+  return new Promise(res => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1000, k = Math.min(1, max / Math.max(img.width, img.height));
+        const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        res(cv.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = () => res(fr.result); img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function saveEditor(){
+  collectFields();
+  const D = editorDraft;
+  const fields = NOTE_TYPES[D.type].fields.map((_, i) => sanitize(D.fields[i] || ''));
+  const tags = D.tags.split(/[\s,]+/).map(t => t.trim()).filter(Boolean);
+  if (!col.decks[D.deckId]) D.deckId = firstDeckId();
+  if (!strip(fields[0]) && !/<img/i.test(fields[0])) { toast(`The ${NOTE_TYPES[D.type].fields[0]} field is empty`); return; }
+  if (D.type === 'cloze' && !CLOZE_RE.test(fields[0])) { CLOZE_RE.lastIndex = 0; toast('Add at least one cloze, like {{c1::answer}}'); return; }
+  CLOZE_RE.lastIndex = 0;
+  if (route.name === 'edit') {
+    const note = col.notes[D.noteId];
+    note.fields = fields; note.tags = tags; note.mod = Date.now();
+    if (note.deckId !== D.deckId) { note.deckId = D.deckId; for (const c of cardsOfNote(note.id)) c.deckId = D.deckId; }
+    syncCards(note); save(); editorDraft = null; toast('Saved');
+    route.back ? route.back() : go('browse');
+  } else {
+    const note = addNote(D.type, fields, tags, D.deckId);
+    col.prefs.lastDeck = D.deckId; col.prefs.lastType = D.type; col.prefs.lastTags = D.tags;
+    save(); toast(`Added ${cardsOfNote(note.id).length} card${cardsOfNote(note.id).length > 1 ? 's' : ''}`);
+    editorDraft.fields = ['', '']; viewEditor(); const f0 = $('#fld0'); if (f0) f0.focus();
+  }
+}
+
+/* ================= Browse ================= */
+let browseQuery = '', browseLimit = 200;
+function tokenize(q){ const out = []; const re = /(-?)(\w+:)?("([^"]*)"|\S+)/g; let m; while ((m = re.exec(q))) out.push({ neg:!!m[1], key:m[2] ? m[2].slice(0, -1).toLowerCase() : null, val:(m[4] ?? m[3]).toLowerCase() }); return out; }
+function searchCards(q){
+  const toks = tokenize(q.trim()); const today = dayNum(); const textCache = {};
+  const txt = n => textCache[n.id] ??= n.fields.map(strip).join(' ').toLowerCase();
+  return Object.values(col.cards).filter(c => {
+    const n = col.notes[c.noteId]; if (!n) return false;
+    return toks.every(t => {
+      let ok;
+      if (t.key === 'deck') { const dn = (col.decks[c.deckId]?.name || '').toLowerCase(); const v = t.val.replace(/\*$/, ''); ok = t.val.endsWith('*') ? dn.startsWith(v) : dn === v || dn.startsWith(v + '::'); }
+      else if (t.key === 'tag') { const v = t.val.replace(/\*$/, ''); ok = n.tags.some(x => t.val.endsWith('*') ? x.toLowerCase().startsWith(v) : x.toLowerCase() === v); }
+      else if (t.key === 'is') ok = ({ new:c.type === 'new', learn:c.type === 'learn' || c.type === 'relearn', review:c.type === 'review', due:!c.suspended && ((c.type === 'review' && c.due <= today) || ((c.type === 'learn' || c.type === 'relearn') && c.due < dayStartMs(today + 1))), suspended:c.suspended, buried:c.buried === today })[t.val] ?? false;
+      else if (t.key === 'note') ok = n.type === t.val || NOTE_TYPES[n.type].name.toLowerCase() === t.val;
+      else ok = txt(n).includes((t.key ? t.key + ':' : '') + t.val);
+      return t.neg ? !ok : ok;
+    });
+  }).sort((a, b) => (b.created || 0) - (a.created || 0));
+}
+function dueText(c){
+  if (c.suspended) return 'Suspended';
+  if (c.type === 'new') return 'New #' + c.due;
+  if (c.type !== 'review') return 'Learning';
+  const diff = c.due - dayNum();
+  if (diff <= 0) return diff === 0 ? 'Due today' : `Overdue ${-diff}d`;
+  if (diff === 1) return 'Due tomorrow';
+  return 'Due ' + new Date(dayStartMs(c.due)).toLocaleDateString(undefined, { month:'short', day:'numeric', year:diff > 300 ? 'numeric' : undefined });
+}
+function viewBrowse(){
+  const chips = [['All', ''], ['Due', 'is:due'], ['New', 'is:new'], ['Learning', 'is:learn'], ['Suspended', 'is:suspended'], ['Leeches', 'tag:leech']];
+  mount(`<div class="wrap">
+    <header class="bar"><span class="l"></span><h1>Browse</h1><span class="r"></span></header>
+    <div class="search"><input id="q" type="search" placeholder="Search cards, deck:name, tag:name" value="${esc(browseQuery)}" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+    <div class="chips">${chips.map(([l, q]) => `<button data-act="chip" data-q="${esc(q)}" class="${browseQuery === q ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div id="results"></div></div>`, {
+    chip:el => { browseQuery = el.dataset.q; browseLimit = 200; $('#q').value = browseQuery; document.querySelectorAll('.chips button').forEach(b => b.classList.toggle('on', b === el)); renderResults(); },
+    'input:q':el => { browseQuery = el.value; browseLimit = 200; clearTimeout(viewBrowse._t); viewBrowse._t = setTimeout(renderResults, 150); document.querySelectorAll('.chips button').forEach(b => b.classList.toggle('on', b.dataset.q === browseQuery)); },
+    open:el => cardSheet(el.dataset.id),
+    moreRes:() => { browseLimit += 300; renderResults(); },
+  });
+  renderResults();
+}
+function renderResults(){
+  const box = $('#results'); if (!box) return;
+  const res = searchCards(browseQuery);
+  if (!Object.keys(col.cards).length) { box.innerHTML = `<div class="empty"><h2>No cards yet</h2>Tap Add below to create your first card.</div>`; return; }
+  box.innerHTML = `<div class="result-n">${res.length} card${res.length === 1 ? '' : 's'}</div>` + (res.length ? `<div class="group">${res.slice(0, browseLimit).map(c => {
+    const leech = col.notes[c.noteId].tags.includes('leech');
+    return `<button class="brow ${c.suspended ? 'susp' : ''}" data-act="open" data-id="${c.id}"><div class="bq">${esc(sortText(c)) || '<i>(image)</i>'}</div>
+      <div class="bmeta"><span>${esc((col.decks[c.deckId]?.name || '').replace(/::/g, ' › '))}${leech ? ' · leech' : ''}</span><span>${dueText(c)}</span></div></button>`;
+  }).join('')}</div>` : '') + (res.length > browseLimit ? `<div class="btn-row"><button class="btn" data-act="moreRes">Show more</button></div>` : '');
+}
+function cardSheet(cardId){
+  const c = col.cards[cardId]; if (!c) return; const n = col.notes[c.noteId]; const qa = renderQA(c);
+  const reviews = col.revlog.filter(r => r.cid === c.id);
+  const fmtDate = t => new Date(t).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  const deckOpts = decksSorted().map(d => `<option value="${d.id}" ${d.id === c.deckId ? 'selected' : ''}>${esc(d.name.replace(/::/g, ' › '))}</option>`).join('');
+  const s = openSheet(`<div class="preview"><div class="qa">${qa.a}</div></div>
+    <dl class="info">
+      <dt>Added</dt><dd>${fmtDate(c.created || n.created)}</dd>
+      <dt>Due</dt><dd>${dueText(c)}</dd>
+      ${c.type !== 'new' ? `<dt>Interval</dt><dd>${c.ivl ? fmtIvl(c.ivl * DAY) : '—'}</dd><dt>Ease</dt><dd>${Math.round(c.ease * 100)}%</dd>` : ''}
+      <dt>Reviews</dt><dd>${reviews.length}</dd><dt>Lapses</dt><dd>${c.lapses}</dd>
+      ${reviews.length ? `<dt>Last review</dt><dd>${fmtDate(reviews[reviews.length - 1].t)}</dd>` : ''}
+      <dt>Note type</dt><dd>${NOTE_TYPES[n.type].name}</dd>
+      ${n.tags.length ? `<dt>Tags</dt><dd>${esc(n.tags.join(' '))}</dd>` : ''}
+      <dt>Deck</dt><dd><select id="mvdeck" class="sel" style="padding:6px 8px;width:auto;max-width:200px">${deckOpts}</select></dd>
+    </dl>
+    <div class="action-list">
+      <button class="action" data-act="edit">Edit note</button>
+      <button class="action" data-act="susp">${c.suspended ? 'Unsuspend card' : 'Suspend card'}</button>
+      <button class="action" data-act="forget">Reset to new</button>
+      <button class="action danger" data-act="del">Delete note</button>
+    </div>
+    <button class="action cancel" data-act="__close">Done</button>`, {
+    edit:(el, e, close) => { close(); go('edit', { noteId:n.id, back:() => go('browse') }); },
+    susp:(el, e, close) => { c.suspended = !c.suspended; save(); close(); renderResults(); toast(c.suspended ? 'Card suspended' : 'Card unsuspended'); },
+    forget:async (el, e, close) => { close(); if (!await confirmSheet('Reset this card to new?', 'Its interval and ease are cleared. Review history is kept.', 'Reset', false)) return;
+      Object.assign(c, { type:'new', due:col.nextPos++, ivl:0, ease:0, step:0, lapses:0, reps:0, buried:null }); save(); renderResults(); toast('Card reset to new'); },
+    del:async (el, e, close) => { close(); if (!await confirmSheet('Delete this note?', `This removes ${cardsOfNote(n.id).length} card(s). This can't be undone.`, 'Delete')) return; deleteNote(n.id); save(); renderResults(); toast('Note deleted'); },
+  });
+  s.el.querySelector('#mvdeck').addEventListener('change', e => { c.deckId = e.target.value; save(); renderResults(); toast('Card moved'); });
+}
+
+/* ================= Stats ================= */
+let statsDeck = 'all';
+function barChart(values, colors, labels, h = 110){
+  const W = 320, n = values.length, bw = W / n, max = Math.max(1, ...values.map(v => Array.isArray(v) ? v.reduce((a, b) => a + b, 0) : v));
+  let bars = '';
+  values.forEach((v, i) => {
+    const arr = Array.isArray(v) ? v : [v]; let y = h;
+    arr.forEach((x, j) => { const bh = (x / max) * (h - 12); if (bh > 0) { y -= bh; bars += `<rect x="${(i * bw + 1).toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${bh.toFixed(1)}" rx="1.5" fill="${colors[j]}"/>`; } });
+  });
+  const lab = labels.map(([i, t]) => { const anchor = i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'; const x = i === 0 ? 0 : i === n - 1 ? W : i * bw + bw / 2; return `<text x="${x.toFixed(1)}" y="${h + 12}" text-anchor="${anchor}">${t}</text>`; }).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${h + 16}" role="img"><line x1="0" y1="${h}" x2="${W}" y2="${h}" stroke="var(--line)"/>${bars}${lab}<text x="${W}" y="9" text-anchor="end">${max}</text></svg>`;
+}
+function viewStats(){
+  const today = rollDay();
+  const ids = statsDeck === 'all' || !col.decks[statsDeck] ? null : new Set(subtreeIds(statsDeck));
+  const cards = Object.values(col.cards).filter(c => !ids || ids.has(c.deckId));
+  const cids = new Set(cards.map(c => c.id));
+  const logs = col.revlog.filter(r => cids.has(r.cid) || (ids ? ids.has(r.did) && !col.cards[r.cid] : !col.cards[r.cid]));
+  const dayOf = t => dayNum(t);
+  const todayLogs = logs.filter(r => dayOf(r.t) === today);
+  const todayTime = todayLogs.reduce((a, r) => a + r.time, 0);
+  const todayCorrect = todayLogs.filter(r => r.ease > 1).length;
+  // forecast
+  const fc = Array.from({ length:30 }, () => [0, 0]);
+  for (const c of cards) { if (c.suspended) continue;
+    if (c.type === 'review') { const d = Math.max(0, c.due - today); if (d < 30) fc[d][c.ivl >= 21 ? 1 : 0]++; }
+    else if (c.type !== 'new') fc[0][0]++; }
+  // history
+  const hist = Array.from({ length:30 }, () => [0, 0, 0]);
+  for (const r of logs) { const d = today - dayOf(r.t); if (d >= 0 && d < 30) hist[29 - d][r.type === 'new' ? 0 : r.type === 'review' ? 2 : 1]++; }
+  // counts
+  const k = { new:0, learn:0, young:0, mature:0, susp:0 };
+  for (const c of cards) { if (c.suspended) k.susp++; else if (c.type === 'new') k.new++; else if (c.type !== 'review') k.learn++; else if (c.ivl >= 21) k.mature++; else k.young++; }
+  const total = cards.length || 1;
+  // retention (last 30 days, review cards)
+  const ret = (pred) => { const rs = logs.filter(r => r.type === 'review' && today - dayOf(r.t) < 30 && pred(r)); return rs.length ? Math.round(100 * rs.filter(r => r.ease > 1).length / rs.length) + '%' : '—'; };
+  let streak = 0; { const days = new Set(logs.map(r => dayOf(r.t))); let d = days.has(today) ? today : today - 1; while (days.has(d)) { streak++; d--; } }
+  const deckOpts = `<option value="all">All decks</option>` + decksSorted().map(d => `<option value="${d.id}" ${d.id === statsDeck ? 'selected' : ''}>${esc(d.name.replace(/::/g, ' › '))}</option>`).join('');
+  const seg = [[k.new, 'var(--new)', 'New'], [k.learn, 'var(--learn)', 'Learning'], [k.young, 'color-mix(in srgb,var(--due) 55%,transparent)', 'Young'], [k.mature, 'var(--due)', 'Mature'], [k.susp, '#C9A227', 'Suspended']];
+  mount(`<div class="wrap">
+    <header class="bar"><span class="l"></span><h1>Statistics</h1><span class="r"></span></header>
+    <div class="form" style="margin-bottom:14px"><select class="sel" id="sdeck">${deckOpts}</select></div>
+    <div class="stat-card"><h3>Today</h3><div class="stat-big">
+      <div><b>${todayLogs.length}</b><span>cards studied</span></div>
+      <div><b>${Math.round(todayTime / 60000)}</b><span>minutes</span></div>
+      <div><b>${todayLogs.length ? Math.round(100 * todayCorrect / todayLogs.length) + '%' : '—'}</b><span>correct</span></div></div></div>
+    <div class="stat-card"><h3>Future due</h3>${barChart(fc, ['color-mix(in srgb,var(--due) 55%,transparent)', 'var(--due)'], [[0, 'Today'], [7, '+7d'], [14, '+14d'], [21, '+21d'], [29, '+29d']])}
+      <div class="legend"><span><i style="background:color-mix(in srgb,var(--due) 55%,transparent)"></i>Young &amp; learning</span><span><i style="background:var(--due)"></i>Mature</span><span style="margin-left:auto;color:var(--muted)">Due tomorrow: ${fc[1][0] + fc[1][1]}</span></div></div>
+    <div class="stat-card"><h3>Reviews, last 30 days</h3>${barChart(hist, ['var(--new)', 'var(--learn)', 'var(--due)'], [[0, '-29d'], [14, '-15d'], [29, 'Today']])}
+      <div class="legend"><span><i style="background:var(--new)"></i>New</span><span><i style="background:var(--learn)"></i>Learning</span><span><i style="background:var(--due)"></i>Review</span><span style="margin-left:auto;color:var(--muted)">Streak: ${streak} day${streak === 1 ? '' : 's'}</span></div></div>
+    <div class="stat-card"><h3>Card counts</h3><div class="stack">${seg.map(([v, c]) => v ? `<div style="width:${100 * v / total}%;background:${c}"></div>` : '').join('')}</div>
+      <div class="legend">${seg.map(([v, c, l]) => `<span><i style="background:${c}"></i>${l} ${v}</span>`).join('')}</div></div>
+    <div class="stat-card"><h3>Retention, last 30 days</h3><div class="stat-big">
+      <div><b>${ret(r => r.lastIvl < 21)}</b><span>young</span></div><div><b>${ret(r => r.lastIvl >= 21)}</b><span>mature</span></div><div><b>${ret(() => true)}</b><span>overall</span></div></div></div>
+  </div>`, { 'change:sdeck':el => { statsDeck = el.value; viewStats(); } });
+}
+
+/* ================= Deck options ================= */
+function parseSteps(s){ const out = []; for (const t of String(s).trim().split(/[\s,]+/)) { if (!t) continue; const m = /^(\d+(?:\.\d+)?)([smhd]?)$/i.exec(t); if (!m) return null; const v = +m[1], u = (m[2] || 'm').toLowerCase(); out.push(u === 's' ? v / 60 : u === 'h' ? v * 60 : u === 'd' ? v * 1440 : v); } return out; }
+function fmtSteps(a){ return a.map(m => m >= 1440 && m % 1440 === 0 ? m / 1440 + 'd' : m >= 60 && m % 60 === 0 ? m / 60 + 'h' : m < 1 ? Math.round(m * 60) + 's' : m + 'm').join(' '); }
+function viewOptions(){
+  const d = col.decks[route.deckId]; if (!d) return go('decks'); const c = d.conf;
+  const num = (id, label, v, sub = '') => `<label class="row"><span>${label}${sub ? `<div class="sub">${sub}</div>` : ''}</span><input type="number" inputmode="decimal" id="${id}" value="${v}"></label>`;
+  const txt = (id, label, v, sub = '') => `<label class="row"><span>${label}${sub ? `<div class="sub">${sub}</div>` : ''}</span><input type="text" id="${id}" value="${esc(v)}" autocapitalize="off"></label>`;
+  const tog = (id, label, v) => `<label class="row"><span>${label}</span><input type="checkbox" id="${id}" ${v ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--accent)"></label>`;
+  const back = () => { if (route.back === 'study' && S) go('study', { deckId:route.studyDeck }); else if (route.back === 'deck') go('deck', { deckId:d.id }); else go('decks'); };
+  mount(`<div class="wrap">
+    <header class="bar"><button class="link l" data-act="cancel">Cancel</button><h1>Options</h1><span class="r"><button class="link" data-act="save" style="font-weight:600">Save</button></span></header>
+    <div class="group-h">${esc(d.name.replace(/::/g, ' › '))} — daily limits</div>
+    <div class="group">${num('newPerDay', 'New cards/day', c.newPerDay)}${num('revPerDay', 'Maximum reviews/day', c.revPerDay)}</div>
+    <div class="group-h">New cards</div>
+    <div class="group">${txt('learnSteps', 'Learning steps', fmtSteps(c.learnSteps), 'e.g. 1m 10m 1d')}${num('graduatingIvl', 'Graduating interval', c.graduatingIvl, 'days')}${num('easyIvl', 'Easy interval', c.easyIvl, 'days')}</div>
+    <div class="group-h">Lapses</div>
+    <div class="group">${txt('relearnSteps', 'Relearning steps', fmtSteps(c.relearnSteps))}${num('minIvl', 'Minimum interval', c.minIvl, 'days')}${num('lapseMult', 'New interval', Math.round(c.lapseMult * 100), '% of old interval')}${num('leechThreshold', 'Leech threshold', c.leechThreshold, 'lapses')}
+      <label class="row"><span>Leech action</span><select id="leechAction"><option value="tag" ${c.leechAction === 'tag' ? 'selected' : ''}>Tag only</option><option value="suspend" ${c.leechAction === 'suspend' ? 'selected' : ''}>Suspend card</option></select></label></div>
+    <div class="group-h">Burying</div>
+    <div class="group">${tog('buryNew', 'Bury new siblings', c.buryNew)}${tog('buryRev', 'Bury review siblings', c.buryRev)}</div>
+    <div class="group-h">Advanced</div>
+    <div class="group">${num('maxIvl', 'Maximum interval', c.maxIvl, 'days')}${num('startEase', 'Starting ease', Math.round(c.startEase * 100), '%')}${num('easyBonus', 'Easy bonus', Math.round(c.easyBonus * 100), '%')}${num('ivlMod', 'Interval modifier', Math.round(c.ivlMod * 100), '%')}${num('hardIvl', 'Hard interval', Math.round(c.hardIvl * 100), '%')}</div>
+    <div class="btn-row"><button class="btn" data-act="reset">Restore defaults</button>${hasKids(d) ? '<button class="btn" data-act="applyKids">Save to subdecks too</button>' : ''}</div>
+  </div>`, {
+    cancel:back,
+    save:() => { if (readOptions(d)) { save(); toast('Options saved'); back(); } },
+    applyKids:() => { if (!readOptions(d)) return; for (const id of subtreeIds(d.id)) col.decks[id].conf = clone(d.conf); save(); toast('Saved to deck and subdecks'); back(); },
+    reset:() => { d.conf = clone(DEFAULT_CONF); save(); viewOptions(); toast('Defaults restored'); },
+  });
+}
+function readOptions(d){
+  const g = id => $('#' + id); const n = (id, min, max) => { const v = parseFloat(g(id).value); return isFinite(v) ? Math.min(max, Math.max(min, v)) : null; };
+  const ls = parseSteps(g('learnSteps').value), rs = parseSteps(g('relearnSteps').value);
+  if (!ls) { toast('Learning steps should look like: 1m 10m 1d'); return false; }
+  if (!rs) { toast('Relearning steps should look like: 10m'); return false; }
+  const vals = { newPerDay:n('newPerDay', 0, 9999), revPerDay:n('revPerDay', 0, 99999), graduatingIvl:n('graduatingIvl', 1, 36500), easyIvl:n('easyIvl', 1, 36500),
+    minIvl:n('minIvl', 1, 36500), lapseMult:n('lapseMult', 0, 100), leechThreshold:n('leechThreshold', 0, 99), maxIvl:n('maxIvl', 1, 36500),
+    startEase:n('startEase', 131, 1000), easyBonus:n('easyBonus', 100, 1000), ivlMod:n('ivlMod', 10, 1000), hardIvl:n('hardIvl', 100, 1000) };
+  if (Object.values(vals).some(v => v === null)) { toast('Check that every number field has a value'); return false; }
+  Object.assign(d.conf, { newPerDay:Math.round(vals.newPerDay), revPerDay:Math.round(vals.revPerDay), learnSteps:ls, relearnSteps:rs,
+    graduatingIvl:Math.round(vals.graduatingIvl), easyIvl:Math.round(vals.easyIvl), minIvl:Math.round(vals.minIvl), lapseMult:vals.lapseMult / 100,
+    leechThreshold:Math.round(vals.leechThreshold), maxIvl:Math.round(vals.maxIvl), startEase:vals.startEase / 100, easyBonus:vals.easyBonus / 100,
+    ivlMod:vals.ivlMod / 100, hardIvl:vals.hardIvl / 100, leechAction:g('leechAction').value, buryNew:g('buryNew').checked, buryRev:g('buryRev').checked });
+  return true;
+}
+
+/* ================= Settings, backup & import ================= */
+function viewSettings(){
+  const p = col.prefs;
+  const nCards = Object.keys(col.cards).length, nNotes = Object.keys(col.notes).length;
+  const offline = navigator.serviceWorker && navigator.serviceWorker.controller;
+  const hours = Array.from({ length:24 }, (_, h) => `<option value="${h}" ${h === p.dayStartHour ? 'selected' : ''}>${new Date(2000, 0, 1, h).toLocaleTimeString(undefined, { hour:'numeric' })}</option>`).join('');
+  mount(`<div class="wrap">
+    <header class="bar"><button class="link l" data-act="back">‹ Decks</button><h1>Settings</h1><span class="r"></span></header>
+    <div class="group-h">Appearance</div>
+    <div class="group">
+      <label class="row"><span>Theme</span><select id="theme"><option value="system" ${p.theme === 'system' ? 'selected' : ''}>Match iPhone</option><option value="light" ${p.theme === 'light' ? 'selected' : ''}>Light</option><option value="dark" ${p.theme === 'dark' ? 'selected' : ''}>Dark</option></select></label>
+      <label class="row"><span>Show next review time on buttons</span><input type="checkbox" id="showIntervals" ${p.showIntervals ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--accent)"></label>
+      <label class="row"><span>Show remaining card count</span><input type="checkbox" id="showCounts" ${p.showCounts ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--accent)"></label>
+    </div>
+    <div class="group-h">Scheduling</div>
+    <div class="group"><label class="row"><span>Next day starts at</span><select id="dayStartHour">${hours}</select></label></div>
+    <div class="group-h">Backup</div>
+    <div class="group">
+      <button class="row" data-act="backup"><span>Back up collection</span><span class="chev">›</span></button>
+      <button class="row" data-act="restore"><span>Restore from backup</span><span class="chev">›</span></button>
+      <button class="row" data-act="importText"><span>Import text or CSV file</span><span class="chev">›</span></button>
+    </div>
+    <div class="group-f">Your cards are stored only on this iPhone. Back up now and then, and save the file to iCloud Drive.</div>
+    <div class="group-h">About</div>
+    <div class="group">
+      <div class="row"><span>Cards</span><span class="sub">${nCards} cards, ${nNotes} notes</span></div>
+      <div class="row"><span>Offline</span><span class="sub">${offline ? 'Ready — works without a connection' : location.protocol.startsWith('http') ? 'Open once more to finish setup' : 'Not available from a local file'}</span></div>
+      <button class="row" data-act="update"><span>Check for app update</span><span class="chev">›</span></button>
+      <button class="row danger" data-act="wipe"><span>Delete all data</span></button>
+    </div>
+  </div>`, {
+    back:() => go('decks'),
+    'change:theme':el => { p.theme = el.value; applyTheme(); save(); },
+    'change:showIntervals':el => { p.showIntervals = el.checked; save(); },
+    'change:showCounts':el => { p.showCounts = el.checked; save(); },
+    'change:dayStartHour':el => { p.dayStartHour = +el.value; save(); },
+    backup:async () => { await flush(); const d = new Date(); await shareFile(`recall-backup-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`, JSON.stringify({ app:'recall', ...col }), 'application/json'); },
+    restore:restoreFlow,
+    importText:importTextFlow,
+    update:async () => {
+      if (!navigator.serviceWorker) { toast('Updates are not available here'); return; }
+      if (!navigator.onLine) { toast('Connect to the internet to check for updates'); return; }
+      const reg = await navigator.serviceWorker.getRegistration(); if (!reg) { toast('Updates are not available here'); return; }
+      await reg.update(); toast('Checking… the app reloads if there is a new version');
+    },
+    wipe:async () => {
+      if (!await confirmSheet('Delete all data?', "Every deck, card and review is removed from this iPhone. This can't be undone.", 'Delete everything')) return;
+      col = newCollection(); await flush(); applyTheme(); go('decks'); toast('All data deleted');
+    },
+  });
+}
+async function restoreFlow(){
+  const file = await pickFile('.json,application/json'); if (!file) return;
+  let data; try { data = JSON.parse(await file.text()); } catch (e) { toast('That file is not a Recall backup'); return; }
+  if (!data || !data.cards || !data.notes || !data.decks) { toast('That file is not a Recall backup'); return; }
+  if (!await confirmSheet('Replace your collection?', `The backup has ${Object.keys(data.cards).length} cards. Everything currently on this iPhone will be replaced.`, 'Restore')) return;
+  delete data.app; col = Object.assign(newCollection(), data); col.prefs = Object.assign(newCollection().prefs, data.prefs);
+  await flush(); applyTheme(); go('decks'); toast('Backup restored');
+}
+function parseDelimited(text, delim){
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += ch; }
+    else if (ch === '"' && f === '') q = true;
+    else if (ch === delim) { row.push(f); f = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+    else f += ch;
+  }
+  if (f !== '' || row.length) { row.push(f); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()));
+}
+async function importTextFlow(){
+  const file = await pickFile('.txt,.csv,.tsv,text/plain,text/csv,text/tab-separated-values'); if (!file) return;
+  let text = await file.text(); text = text.replace(/^\uFEFF/, '');
+  const lines = text.split(/\r?\n/); let header = {}; let start = 0;
+  while (start < lines.length && lines[start].startsWith('#')) { const m = /^#([\w ]+):(.*)$/.exec(lines[start]); if (m) header[m[1].trim().toLowerCase()] = m[2].trim(); start++; }
+  const body = lines.slice(start).join('\n');
+  const first = lines[start] || '';
+  const sepMap = { tab:'\t', comma:',', semicolon:';', pipe:'|', space:' ' };
+  const delim = sepMap[(header.separator || '').toLowerCase()] || (first.includes('\t') ? '\t' : (first.split(';').length > first.split(',').length ? ';' : ','));
+  const isHtml = header.html ? header.html.toLowerCase() === 'true' : true;
+  const tagCol = header['tags column'] ? parseInt(header['tags column'], 10) - 1 : -1;
+  const rows = parseDelimited(body, delim);
+  if (!rows.length) { toast('No cards found in that file'); return; }
+  const deckGuess = (header.deck && deckByName(header.deck)) ? deckByName(header.deck).id : null;
+  const deckOpts = decksSorted().map(d => `<option value="${d.id}" ${d.id === deckGuess ? 'selected' : ''}>${esc(d.name.replace(/::/g, ' › '))}</option>`).join('');
+  const baseName = file.name.replace(/\.[^.]+$/, '');
+  const s = openSheet(`<div class="sheet-title">Import ${rows.length} row${rows.length === 1 ? '' : 's'}</div>
+    <div class="sheet-msg">First row: ${esc(strip(rows[0][0]).slice(0, 60))}${rows[0][1] !== undefined ? ' → ' + esc(strip(rows[0][1]).slice(0, 60)) : ''}</div>
+    <label class="lbl" style="display:block;font-size:13px;color:var(--muted);margin:0 4px 6px">Into deck</label>
+    <select class="sel" id="imdeck"><option value="__new">New deck: ${esc(baseName)}</option>${deckOpts}</select>
+    <label class="lbl" style="display:block;font-size:13px;color:var(--muted);margin:12px 4px 6px">Card type</label>
+    <select class="sel" id="imtype">${Object.entries(NOTE_TYPES).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('')}</select>
+    <div class="sheet-msg" style="margin:10px 4px 14px;text-align:left">Column 1 becomes the front, column 2 the back${tagCol < 0 ? ', and column 3 (if any) tags' : ''}. Duplicates of existing cards are skipped.</div>
+    <div class="row-btns"><button class="btn" data-act="__close">Cancel</button><button class="btn primary" data-act="go">Import</button></div>`, {
+    go:(el, e, close) => {
+      const dv = s.el.querySelector('#imdeck').value, type = s.el.querySelector('#imtype').value;
+      let deck = dv === '__new' ? (deckByName(baseName) || ensureDeck(baseName)) : col.decks[dv];
+      const existing = new Set(Object.values(col.notes).filter(n => n.type === type).map(n => strip(n.fields[0]).toLowerCase()));
+      let added = 0, dup = 0, bad = 0;
+      const fix = v => { v = v ?? ''; return isHtml ? sanitize(v.replace(/\r?\n/g, '<br>')) : esc(v).replace(/\r?\n/g, '<br>'); };
+      for (const r of rows) {
+        const f0 = fix(r[0]), f1 = fix(r[1]);
+        const key = strip(f0).toLowerCase();
+        if (!key && !/<img/i.test(f0)) { bad++; continue; }
+        if (existing.has(key)) { dup++; continue; }
+        if (type === 'cloze' && !f0.match(CLOZE_RE)) { bad++; continue; }
+        const tc = tagCol >= 0 ? tagCol : 2;
+        const tags = (r[tc] || '').split(/\s+/).filter(Boolean);
+        addNote(type, [f0, tagCol === 1 ? '' : f1], tags, deck.id); existing.add(key); added++;
+      }
+      save(); close(); render();
+      toast(`Imported ${added} note${added === 1 ? '' : 's'}${dup ? `, skipped ${dup} duplicate${dup === 1 ? '' : 's'}` : ''}${bad ? `, ${bad} unusable row${bad === 1 ? '' : 's'}` : ''}`);
+    },
+  });
+}
+function exportDeckText(id){
+  const ids = new Set(subtreeIds(id));
+  const notes = new Set(Object.values(col.cards).filter(c => ids.has(c.deckId)).map(c => c.noteId));
+  const q = v => /[\t\n"]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  const lines = ['#separator:tab', '#html:true', '#tags column:3'];
+  for (const nid of notes) { const n = col.notes[nid]; lines.push([q(n.fields[0]), q(n.fields[1] || ''), q(n.tags.join(' '))].join('\t')); }
+  shareFile(col.decks[id].name.replace(/::/g, ' - ').replace(/[\/\\:*?"<>|]/g, '') + '.txt', lines.join('\n'), 'text/plain');
+}
+
+/* ================= First run ================= */
+function seed(){
+  const g = ensureDeck('Getting Started');
+  const tip = [
+    ['How do I study?', 'Try to recall the answer, then tap <b>Show Answer</b> (or tap the card). Rate yourself honestly: <b>Again</b>, <b>Hard</b>, <b>Good</b> or <b>Easy</b>.'],
+    ['What do the three numbers at the top mean?', 'Blue is new cards, red is cards you are still learning, and green is reviews due today.'],
+    ['What happens when I tap Again?', 'The card comes back in a few minutes. If it was a review, it counts as a lapse and its next interval shrinks.'],
+    ['How do I make a card with a blank to fill in?', 'Use the <b>Cloze</b> type on the Add screen. Select a word and tap Cloze to hide it.'],
+    ['Where are my cards stored?', 'Only on this iPhone. Use <b>Settings › Back up collection</b> now and then to keep a copy in iCloud Drive.'],
+  ];
+  for (const [f, b] of tip) addNote('basic', [f, b], [], g.id);
+  addNote('cloze', ['Cards you answer correctly come back after {{c1::longer and longer}} intervals. This is called {{c2::spaced repetition}}.', ''], [], g.id);
+  const w = ensureDeck('World Capitals');
+  for (const [c, cap] of [['France','Paris'],['Japan','Tokyo'],['Kenya','Nairobi'],['Canada','Ottawa'],['Australia','Canberra'],['Brazil','Brasília'],['Egypt','Cairo'],['India','New Delhi'],['Norway','Oslo'],['Peru','Lima']])
+    addNote('reverse', [`Capital of ${c}`, cap], ['geography'], w.id);
+  col.prefs.lastDeck = g.id;
+}
+
+/* ================= Boot ================= */
+(async function boot(){
+  await Store.open();
+  const saved = await Store.get('collection');
+  if (saved && saved.cards) { col = Object.assign(newCollection(), saved); col.prefs = Object.assign(newCollection().prefs, saved.prefs); col.daily.extraNew ||= {}; }
+  else { col = newCollection(); seed(); await flush(); }
+  for (const d of Object.values(col.decks)) d.conf = Object.assign(clone(DEFAULT_CONF), d.conf);
+  applyTheme(); render();
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    let reloading = false; const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloading || !hadController) return; reloading = true; flush(); if (route.name !== 'study' && route.name !== 'add' && route.name !== 'edit') location.reload(); });
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
