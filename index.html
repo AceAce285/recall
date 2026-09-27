@@ -1182,12 +1182,13 @@ async function importTextFlow(){
     <select class="sel" id="imdeck"><option value="__new">New deck: ${esc(baseName)}</option>${deckOpts}</select>
     <label class="lbl" style="display:block;font-size:13px;color:var(--muted);margin:12px 4px 6px">Card type</label>
     <select class="sel" id="imtype">${Object.entries(NOTE_TYPES).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('')}</select>
-    <div class="sheet-msg" style="margin:10px 4px 14px;text-align:left">Column 1 becomes the front, column 2 the back${tagCol < 0 ? ', and column 3 (if any) tags' : ''}. Duplicates of existing cards are skipped.</div>
+    <div class="sheet-msg" style="margin:10px 4px 14px;text-align:left">Column 1 becomes the front, column 2 the back${tagCol < 0 ? ', and column 3 (if any) tags' : ''}. Cards already in the chosen deck are skipped.</div>
     <div class="row-btns"><button class="btn" data-act="__close">Cancel</button><button class="btn primary" data-act="go">Import</button></div>`, {
     go:(el, e, close) => {
       const dv = s.el.querySelector('#imdeck').value, type = s.el.querySelector('#imtype').value;
       let deck = dv === '__new' ? (deckByName(baseName) || ensureDeck(baseName)) : col.decks[dv];
-      const existing = new Set(Object.values(col.notes).filter(n => n.type === type).map(n => strip(n.fields[0]).toLowerCase()));
+      const inDeck = new Set(subtreeIds(deck.id)), deckNotes = new Set(Object.values(col.cards).filter(c => inDeck.has(c.deckId)).map(c => c.noteId));
+      const existing = new Set(Object.values(col.notes).filter(n => n.type === type && deckNotes.has(n.id)).map(n => strip(n.fields[0]).toLowerCase()));
       let added = 0, dup = 0, bad = 0;
       const fix = v => { v = v ?? ''; return isHtml ? sanitize(v.replace(/\r?\n/g, '<br>')) : esc(v).replace(/\r?\n/g, '<br>'); };
       for (const r of rows) {

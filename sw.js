@@ -1,5 +1,5 @@
 // Recall offline cache. Bump VERSION when you upload a new index.html.
-const VERSION = 'recall-v2';
+const VERSION = 'recall-v3';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
